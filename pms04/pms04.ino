@@ -1858,6 +1858,14 @@ void sub_test_m(void) {
     digitalWrite(PIN_PCM_CONTROL, HIGH);
   } else if(c == '8') {  // PCM_Control LOW
     digitalWrite(PIN_PCM_CONTROL, LOW);
+  } else if(c == '9') {
+    Serial.print("System will be restart in 10 seconds");
+    for(int i=0; i<10; i++){
+      Serial.print(".");
+      delay(1000);
+    }
+    Serial.println();
+    ESP.restart();
   } else {
     Serial.println("Invalid Test Number");
     return;
@@ -1914,7 +1922,7 @@ void sub_test_n(void) {
     digitalWrite(SS, HIGH);
     SPI.endTransaction();
 
-  } else if(c == '2') {  // 
+  } else if(c == '2') {  // VSPI Test
 
     pinMode(SS, OUTPUT);
     digitalWrite(SS, HIGH);
@@ -1930,7 +1938,7 @@ void sub_test_n(void) {
     vspi->endTransaction();
     delete vspi;
 
-  } else if(c == '3') {  // 
+  } else if(c == '3') {  // IP Set
     Ethernet.init(PIN_ETH_CS);
     pCUR_SPI = pspi;
     Ethernet.begin(nc_mac, nc_ip, nc_dns, nc_gateway, nc_subnet);
@@ -1944,7 +1952,7 @@ void sub_test_n(void) {
     Serial.print("getChip(): "); Serial.println(Ethernet.getChip(), DEC);
     Serial.print("localIP(): "); Serial.println(Ethernet.localIP());
 
-  } else if(c == '4') {
+  } else if(c == '4') {  // Check LINK Status
     Serial.print("linkStatus: "); Serial.println(Ethernet.linkStatus(), DEC); //LINK_ON, LINK_OFF
     Serial.print("PhyState: "); Serial.println(Ethernet.phyState(), HEX);
     Serial.print("HardwareStatus: "); Serial.println(Ethernet.hardwareStatus());
@@ -2043,7 +2051,7 @@ void sub_test_o(void) {
   while(1){
     if(Serial.available()) {
       c = Serial.read();
-      break;
+      if(isalnum(c)) break;
     }
     delay(100);
   }
@@ -2307,6 +2315,8 @@ void sub_test_z(void) {
   ppzem[2] = &pzem2;
   ppzem[3] = &pzem3;
 
+  Serial.println("Sub-test Z - PZEM Measurement Test");
+
   Serial.println("Press q to quit: ");
 
   while(1) {
@@ -2323,6 +2333,7 @@ void sub_test_z(void) {
       break;
     }
 
+    // PZEM Address Check
     addr = ppzem[idx]->readAddress();
     Serial.print("Custom Address["); Serial.print(idx); Serial.print("]: ");
     Serial.println(addr, HEX);
