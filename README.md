@@ -24,6 +24,8 @@
 
   Arduino IDE : Tools --> Manage Libraries... --> Library Manager
 
+  Install이 필요한 Library : AsyncDelay, Ethernet_Generic, SoftWire
+
 - User Arduino Library (.ZIP) 추가
 
   Arduino IDE : Tools --> Sketch --> Include Library --> Add .ZIP Libraries...
