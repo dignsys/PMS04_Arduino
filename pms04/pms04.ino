@@ -2310,10 +2310,17 @@ void sub_test_z(void) {
   uint8_t addr;
   PZEM004Tv30* ppzem[4];
 
+#if 0
   ppzem[0] = &pzem0;
   ppzem[1] = &pzem1;
   ppzem[2] = &pzem2;
   ppzem[3] = &pzem3;
+#else
+  ppzem[0] = &pzem3;
+  ppzem[1] = &pzem2;
+  ppzem[2] = &pzem1;
+  ppzem[3] = &pzem0;
+#endif
 
   Serial.println("Sub-test Z - PZEM Measurement Test");
 
@@ -2335,7 +2342,7 @@ void sub_test_z(void) {
 
     // PZEM Address Check
     addr = ppzem[idx]->readAddress();
-    Serial.print("Custom Address["); Serial.print(idx); Serial.print("]: ");
+    Serial.print("Custom Address[PM-"); Serial.print(idx+1); Serial.print("]: ");
     Serial.println(addr, HEX);
 
     if(addr) {
