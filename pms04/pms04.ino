@@ -1958,6 +1958,7 @@ void sub_test_n(void) {
     Serial.print("HardwareStatus: "); Serial.println(Ethernet.hardwareStatus());
     Serial.print("speed: "); Serial.println(Ethernet.speed(), DEC);
     Serial.print("duplex: "); Serial.println(Ethernet.duplex(), DEC);
+    Serial.print("localIP(): "); Serial.println(Ethernet.localIP());
     Serial.print("dnsServerIP: "); Serial.println(Ethernet.dnsServerIP());
 
   } else if(c == '5') {
@@ -2025,6 +2026,7 @@ void sub_test_n(void) {
     //DhcpClass* dhcp = new DhcpClass();
     dhcp->beginWithDHCP(nc_mac);
     Serial.print("localIP(): "); Serial.println(dhcp->getLocalIp());
+    Ethernet.setLocalIP(dhcp->getLocalIp());
     //delete dhcp;
   } else if(c == '8') {
     Serial.print("DhcpServerIp(): "); Serial.println(dhcp->getDhcpServerIp());
