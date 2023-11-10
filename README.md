@@ -32,7 +32,11 @@
 ## Sample Source Code for Hardware Basic Operation
 - 실행 방법
 
-  각각 sub_test_*() 함수로 구분되어 작성되어 있고, Serial Monitor의 Message 창에 해당하는 함수의 명령어를 입력하여 실행할 수 있음. 예를 들어, sub_test_a( )는 'a'를 입력하고 'Enter'키를 입력함으로써, 실행됨.
+  시스템을 부팅하면, PZEM을 통하여 주기적으로 전력 데이터를 검출하는 기능이 Main Loop로 실행됩니다. 이후, '#'키를 입력하여, Sub Test 함수들을 시험할 수 있는 메뉴로 진입합니다.
+
+  각 시험 항목들은 sub_test_*() 함수로 구분되어 작성되어 있고, Serial Monitor의 Message 창에 해당하는 함수의 명령어를 입력하여 실행할 수 있습니다. 예를 들어, sub_test_a( )는 'a'를 입력하고 'Enter'키를 입력함으로써, 실행됩니다.
+
+  Sub Test 메뉴에서 다시 Main Loop로 돌아가고자 한다면, 'x'키를 눌러 Main Loop를 실행할 수 있습니다.
 - Sub Test Function List
   - sub_test_a( ) : Read I2C - SC16IS752 channel별 register를 읽기 위한 함수
   - sub_test_b( ) : Write I2C - SC16IS752 channel별 register를 쓰기 위한 함수
@@ -42,13 +46,16 @@
   - sub_test_f( ) : Write data to SC16IS752 UART - SC16IS752 UART에 임의의 데이터 블록을 전송하기 위한 함수
   - sub_test_g( ) : Read data from SC16IS752 UART - SC16IS752 UART에서 임의의 데이터 블록를 읽기 위한 함수
   - sub_test_h( ) : PZEM command #2 - PZEM에 개별 Command를 전송하기 위한 함수
-
   - sub_test_i( ) : PZEM command #3 - PZEM에 Search Command를 전송하기 위한 함수
   - sub_test_l( ) : RTC - RTC를 설정하고 시간 데이터를 읽어내기 위한 함수
   - sub_test_m( ) : IO Expander - IO Expander를 통해 GPIO를 읽고 쓰기 위한 함수
   - sub_test_n( ) : W5500 - W5500를 설정하고 Ethernet 통신을 시험하기 위한 함수
   - sub_test_o( ) : UART TX - RS232, RS485 송신 기능을 시험하기 위한 함수
   - sub_test_p( ) : UART RX - RS232, RS485 수신 기능을 시험하기 위한 함수
+  - sub_test_r( ) : EEPROM에 데이터를 쓰고 읽는 기능을 시험하기 위한 함수
+  - sub_test_s( ) : LittleFS 파일시스템을 적용하여 파일을 쓰고 읽는 기능을 시험하기 위한 함수
+  - sub_test_t( ) : Wifi를 연결하고, Web Server를 기동하여 파일시스템과 연동 시험하기 위한 함수
+  - sub_test_v( ) : 설정 파일을 이용하여, WLAN, LAN 설정을 저장하는 기능을 시험하기 위한 함수
   - sub_test_y( ) : CRC check - PZEM Packet의 CRC 계산을 위한 함수
   - sub_test_z( ) : PZEM Measurement - PZEM Power Measurement Test를 위한 함수
 - PZEM Measurement Test
@@ -327,5 +334,151 @@
         led_rx(LED_OFF);
         delay(500);
         ~~~ 중략 ~~~
+  }
+  ```
+- LittleFS Filesystem Test
+
+  (s+Enter+0+Enter)를 입력하면, LittleFS 파일 시스템을 시작하고 Format을 실행함. (s+Enter+1+Enter)를 입력하면, log_today.txt파일을 생성하고 날짜 데이터를 기록함. (s+Enter+2+Enter)를 입력하면, log_today.txt파일에 시간 데이터를 첨부한 로그 데이터를 추가하여 기록함.
+  ```
+  void sub_test_s(void) {
+    ~~~ 중략 ~~~
+    Serial.println("Sub-test S - LiitleFS");
+
+    Serial.print("Input Test Number: ");
+    ~~~ 중략 ~~~
+    if(c == '0') {
+      LittleFS.begin();
+      LittleFS.format();
+    } else if(c == '1') {  // create log file
+      writeFile(LittleFS, "/log_today.txt", (String((char*) str_cur_date)+ "\r\n").c_str());
+      readFile(LittleFS, "/log_today.txt");
+    } else if(c == '2') {  // add log message
+      r_data = random(0, 1000);
+      appendFile(LittleFS, "/log_today.txt", (String((char*) str_cur_time)+" - log data: "+String(r_data)+"\r\n").c_str());
+      readFile(LittleFS, "/log_today.txt");
+    ~~~ 중략 ~~~
+  }
+  ```
+
+- Web Server Test
+
+  (t+Enter+0+Enter)를 입력하면, WLAN 연결을 실행함. (t+Enter+1+Enter)를 입력하면, MDNS를 설정하여 'pmsmgr.local'로 Web server의 접근이 가능하도록 함. (t+Enter+2+Enter)를 입력하면, Web server의 handler를 설정하여, Web server 접근에 대해 응답하도록 설정함. (t+Enter+3+Enter)를 입력하면, 최종적으로 Web server를 기동 시킴. 이후, 'http://pmsmgr.local'를 통하여 Web server의 동작을 시험할 수 있음.
+  ```
+  void sub_test_t(void) {
+    ~~~ 중략 ~~~
+    Serial.println("Sub-test T - Web Server");
+
+    Serial.print("Input Test Number: ");
+    ~~~ 중략 ~~~
+    if(c == '0') {
+      ~~~ 중략 ~~~
+      WiFi.begin(gv_ssid, gv_passwd);
+      Serial.println("WiFi starting");
+      // Wait for connection
+      while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+      }
+      Serial.println("");
+      Serial.print("Connected to ");
+      Serial.println(gv_ssid);
+      Serial.print("IP address: ");
+      Serial.println(WiFi.localIP());
+    } else if(c == '1') {
+      // use mdns for host name resolution
+      if (!MDNS.begin(host))  // http://PMSMGR.local
+        Serial.println("Error setting up MDNS responder!");   
+      else
+        Serial.printf("mDNS responder started. Hotstname = http://%s.local\n", host);
+    } else if(c == '2') {
+      server.on("/", HTTP_GET, handleMain);
+  
+      // upload file to FS. Three callbacks
+      server.on("/update", HTTP_POST, []() {
+        server.sendHeader("Connection", "close");
+        server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
+        ESP.restart();
+      }, []() {
+      ~~~ 중략 ~~~
+      });
+ 
+      server.on("/delete", HTTP_GET, handleFileDelete);
+      server.on("/main", HTTP_GET, handleMain); // JSON format used by /edit
+      // second callback handles file uploads at that location
+      server.on("/edit", HTTP_POST, []()
+        {server.send(200, "text/html", "<meta http-equiv='refresh' content='1;url=/main'>File uploaded. <a href=/main>Back to list</a>"); }, handleFileUpload); 
+        server.onNotFound([](){if(!handleFileRead(server.uri())) server.send(404, "text/plain", "404 FileNotFound");});
+ 
+      server.begin();
+    } else if(c == '3') {
+      Serial.println("Web-server is running!");
+      ~~~ 중략 ~~~
+        server.handleClient();
+        delay(2);
+      }
+      ~~~ 중략 ~~~
+  }
+  ```
+- Settings Test
+
+  (v+Enter+0+Enter)를 입력하면, Settings를 저장하고 관리할 수 있는 'init.txt' 파일을 생성하고 초기 데이터를 저장함. (v+Enter+1+Enter)를 입력하면, WLAN 설정을 입력하고 저장할 수 있음. (v+Enter+2+Enter)를 입력하면, LAN 설정을 입력하고 저장할 수 있음.
+  ```
+  void sub_test_v(void) {
+    ~~~ 중략 ~~~
+    Serial.println("Sub-test V - Settings");
+
+    Serial.print("Input Test Number: ");
+    ~~~ 중략 ~~~
+    if(c == '0') {  // create init file
+      fsFound = initFS(false, false);
+      if(!fsFound) {
+        Serial.println("Filesystem is not found!");
+        return;
+      }
+      update_settings();
+
+      readFile(LittleFS, "/init.txt");
+    } else if(c == '1') {  // WLAN settings
+      Serial.print("[WLAN] Enter SSID: ");
+      ~~~ 중략 ~~~
+      Serial.printf("Input Data String: %s\r\n", cbuf);
+      if(cbuf[0]){
+        memset(gv_ssid, 0x00, sizeof(gv_ssid));
+        strcpy(gv_ssid, cbuf);
+        update_needed = 1;
+      }
+
+      Serial.print("[WLAN] Enter PASSWD: ");
+      ~~~ 중략 ~~~
+      Serial.printf("Input Data String: %s\r\n", cbuf);
+      if(cbuf[0]){
+        memset(gv_passwd, 0x00, sizeof(gv_passwd));
+        strcpy(gv_passwd, cbuf);
+        update_needed = 1;
+      }
+    } else if(c == '2') {  // LAN settings
+      Serial.print("[LAN] Select Static/DHCP: ");
+      ~~~ 중략 ~~~
+      if(!str_in.compareTo("static")){
+        nc_ip_type = IP_TYPE_STATIC;
+        update_needed = 1;
+      } else if(!str_in.compareTo("dhcp")){
+        nc_ip_type = IP_TYPE_DHCP;
+        update_needed = 1;
+      }
+      ~~~ 중략 ~~~
+      Serial.print("[LAN] Enter IP: ");
+      ~~~ 중략 ~~~
+      Serial.printf("Input Data String: %s\r\n", cbuf);
+      if(cbuf[0]){
+        str_in = cbuf;
+        nc_ip.fromString(str_in);
+        update_needed = 1;
+      }
+    ~~~ 중략 ~~~
+    if(update_needed){
+      update_settings();
+      readFile(LittleFS, "/init.txt");
+    }
   }
   ```
