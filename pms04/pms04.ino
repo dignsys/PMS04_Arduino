@@ -3504,7 +3504,7 @@ void sub_test_v(void) {
   Serial.println(c);
 
   if(c == '0') {  // create init file
-    fsFound = initFS(false, false);
+    fsFound = initFS(true, true);
     if(!fsFound) {
       Serial.println("Filesystem is not found!");
       return;
