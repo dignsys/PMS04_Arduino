@@ -1,5 +1,5 @@
 /* 
- * PMS04 Main 
+ * PMS[01/04] Main 
  * Author : DIGNSYS Inc.
  */
 
@@ -17,6 +17,11 @@
 #include <ESPmDNS.h>
 #include <Update.h>
 
+#define SYS_PMS01     1
+#define SYS_PMS04     4
+//#define SYS_PMS_HW    SYS_PMS01
+#define SYS_PMS_HW   SYS_PMS04
+
 #define DISABLE_IR_FUNCTION
 
 #ifndef DISABLE_IR_FUNCTION
@@ -30,13 +35,17 @@
 
 SC16IS752Serial serial0 = SC16IS752Serial(0);
 SC16IS752Serial serial1 = SC16IS752Serial(1);
+#if (SYS_PMS_HW == SYS_PMS04)
 SC16IS752Serial serial2 = SC16IS752Serial(2);
 SC16IS752Serial serial3 = SC16IS752Serial(3);
+#endif
 
 PZEM004Tv30 pzem0(serial0);
 PZEM004Tv30 pzem1(serial1);
+#if (SYS_PMS_HW == SYS_PMS04)
 PZEM004Tv30 pzem2(serial2);
 PZEM004Tv30 pzem3(serial3);
+#endif
 
 uint8_t rx_buf[SC_RX_BUF_SIZE];
 uint8_t tx_buf[SC_TX_BUF_SIZE];
@@ -302,14 +311,18 @@ void setup() {
   // SC16IS752 UART setup. (begin is excuted here instead of pzem creation)
   serial0.begin(SC_REF_BAUDRATE);
   serial1.begin(SC_REF_BAUDRATE);
+#if (SYS_PMS_HW == SYS_PMS04)
   serial2.begin(SC_REF_BAUDRATE);
   serial3.begin(SC_REF_BAUDRATE);
+#endif
 
   // PZEM Initialization
   pzem0.init(&serial0, false, PZEM_DEFAULT_ADDR);
   pzem1.init(&serial1, false, PZEM_DEFAULT_ADDR);
+#if (SYS_PMS_HW == SYS_PMS04)
   pzem2.init(&serial2, false, PZEM_DEFAULT_ADDR);
   pzem3.init(&serial3, false, PZEM_DEFAULT_ADDR);
+#endif
 
   // GPIO in SC16IS752 (need to init after pzem ?)
   dual_uart_led_init();
@@ -341,7 +354,7 @@ void setup() {
 void loop() {
 
   Serial.println();
-  Serial.println("PMS04 Main Loop");
+  Serial.println("PMS[01/04] Main Loop");
   Serial.println("(C) 2023 Dignsys");
   Serial.println();
 
@@ -352,10 +365,14 @@ void loop() {
   PZEM004Tv30* ppzem[4];
   char log_msg[256] = {0,};
 
+#if (SYS_PMS_HW == SYS_PMS04)
   ppzem[0] = &pzem3;
   ppzem[1] = &pzem2;
   ppzem[2] = &pzem1;
   ppzem[3] = &pzem0;
+#elif (SYS_PMS_HW == SYS_PMS01)
+  ppzem[0] = &pzem0;
+#endif
 
   while(1) {
 
@@ -424,12 +441,18 @@ void loop() {
 
     Serial.println();
 
+#if (SYS_PMS_HW == SYS_PMS04)
     if(++idx > 3){
       idx = 0;
       if(++log_idx > 10){
         log_idx = 0;
       }
     }
+#elif (SYS_PMS_HW == SYS_PMS01)
+    if(++log_idx > 40){
+      log_idx = 0;
+    }
+#endif
     delay(1000);
 
   }
@@ -440,7 +463,7 @@ void loop() {
 void sub_test_loop() {
 
   Serial.println();
-  Serial.println("PMS04 Board Sub-testing.");
+  Serial.println("PMS[01/04] Board Sub-testing.");
   Serial.println("(C) 2023 Dignsys");
   Serial.println();
 
@@ -773,6 +796,7 @@ void dual_uart_led_init(void){
   data[0] &= 0xfc;
   i2c_write(SC16IS752_SADDR0, SC16IS7XX_IOSTATE_REG<<3, data, 1);
 
+#if (SYS_PMS_HW == SYS_PMS04)
   // device 1
   // IO Control
   i2c_read(SC16IS752_SADDR1, SC16IS7XX_IOCONTROL_REG<<3, data, 1);
@@ -788,6 +812,7 @@ void dual_uart_led_init(void){
   i2c_read(SC16IS752_SADDR1, SC16IS7XX_IOSTATE_REG<<3, data, 1);
   data[0] &= 0xfc;
   i2c_write(SC16IS752_SADDR1, SC16IS7XX_IOSTATE_REG<<3, data, 1);
+#endif
 
 }
 
@@ -795,10 +820,17 @@ void dual_uart_led_set(uint8_t num, uint8_t on){
 
   uint8_t data[2] = {0,};
 
+#if (SYS_PMS_HW == SYS_PMS04)
   if((num < 2) || (num > 5)){
     Serial.print("Invalid Dual Uart LED[2~5] Set:"); Serial.println(num);
     return;
   }
+#elif (SYS_PMS_HW == SYS_PMS01)
+  if((num < 2) || (num > 3)){
+    Serial.print("Invalid Dual Uart LED[2~3] Set:"); Serial.println(num);
+    return;
+  }
+#endif
 
   if(num == 2){
     if(on == LED_ON){
@@ -1608,7 +1640,7 @@ void update_settings(void){
   uint8_t sdata[32] = {0,};
   uint8_t str_tmp[128] = {0,};
 
-  writeFile(LittleFS, "/init.txt", "=== PMS04 Settings ===\r\n");
+  writeFile(LittleFS, "/init.txt", "=== PMS Settings ===\r\n");
 
   memset(str_tmp, 0x00, sizeof(str_tmp));
   if(gv_ssid[0]){
@@ -2973,7 +3005,7 @@ void sub_test_n(void) {
     pspi->setFrequency(40000000);
     Ethernet._pinRST = PIN_W5500_RST;
     Ethernet._pinCS = PIN_ETH_CS;
-    Ethernet.setHostname("PMS04_001");
+    Ethernet.setHostname("PMS_001");
     Ethernet.setRetransmissionCount(3);
     Ethernet.setRetransmissionTimeout(4000);
 
@@ -3341,6 +3373,9 @@ void sub_test_s(void) {
       }
     }
     Serial.printf("Input Data String: %s\r\n", cbuf);
+  } else if(c == '6') {
+    Serial.printf("TotalBytes: %d(0x%x), UsedBytes: %d(0x%x)\r\n", 
+      LittleFS.totalBytes(), LittleFS.totalBytes(), LittleFS.usedBytes(), LittleFS.usedBytes());
   } else {
     Serial.println("Invalid Test Number");
     return;
@@ -3802,16 +3837,13 @@ void sub_test_z(void) {
   uint8_t addr;
   PZEM004Tv30* ppzem[4];
 
-#if 0
-  ppzem[0] = &pzem0;
-  ppzem[1] = &pzem1;
-  ppzem[2] = &pzem2;
-  ppzem[3] = &pzem3;
-#else
+#if (SYS_PMS_HW == SYS_PMS04)
   ppzem[0] = &pzem3;
   ppzem[1] = &pzem2;
   ppzem[2] = &pzem1;
   ppzem[3] = &pzem0;
+#elif (SYS_PMS_HW == SYS_PMS01)
+  ppzem[0] = &pzem0;
 #endif
 
   Serial.println("Sub-test Z - PZEM Measurement Test");
@@ -3881,7 +3913,9 @@ void sub_test_z(void) {
 
     Serial.println();
 
-    if(++idx > 3) idx = 0;
+#if (SYS_PMS_HW == SYS_PMS04)
+   if(++idx > 3) idx = 0;
+#endif
     delay(1000);
   }
 
