@@ -17,21 +17,16 @@
 #include <ESPmDNS.h>
 #include <Update.h>
 
+#define DISABLE_IR_FUNCTION
+#ifndef DISABLE_IR_FUNCTION
+#include <IRremoteESP8266.h>
+#include <IRsend.h>
+#endif
+
 #define SYS_PMS01     1
 #define SYS_PMS04     4
 //#define SYS_PMS_HW    SYS_PMS01
 #define SYS_PMS_HW   SYS_PMS04
-
-#define DISABLE_IR_FUNCTION
-
-#ifndef DISABLE_IR_FUNCTION
-#define DECODE_NEC
-//#define DECODE_DENON
-#define DISABLE_CODE_FOR_RECEIVER // Disables restarting receiver after each send. Saves 450 bytes program memory and 269 bytes RAM if receiving functions are not used.
-//#define SEND_PWM_BY_TIMER         // Disable carrier PWM generation in software and use (restricted) hardware PWM.
-//#define USE_NO_SEND_PWM           // Use no carrier PWM, just simulate an active low receiver signal. Overrides SEND_PWM_BY_TIMER definition
-#include <IRremote.hpp>
-#endif
 
 SC16IS752Serial serial0 = SC16IS752Serial(0);
 SC16IS752Serial serial1 = SC16IS752Serial(1);
@@ -93,9 +88,13 @@ uint16_t CRC16(const uint8_t *data, uint16_t len);
 #define PIN_ETH_MOSI      19  //23
 
 #define PIN_PCM_CONTROL   27
+
 #define PIN_GPIO          32
 #define PIN_IR            33
-#define IR_SEND_PIN       PIN_IR
+
+#ifndef DISABLE_IR_FUNCTION
+IRsend IrSender(PIN_IR);
+#endif
 
 #define I2C_ADDR_RTC    0x68
 
@@ -298,6 +297,10 @@ void setup() {
   pinMode(PIN_GPIO, OUTPUT);
   digitalWrite(PIN_GPIO, LOW);
 
+  // IR
+  pinMode(PIN_IR, OUTPUT);
+  digitalWrite(PIN_IR, LOW);
+
   // Arduino USART setup.
   Serial.begin(115200);
   Serial1.begin(115200, SERIAL_8N1, PIN_RS232_RXD, PIN_RS232_TXD);  // RS232
@@ -328,13 +331,7 @@ void setup() {
   dual_uart_led_init();
 
 #ifndef DISABLE_IR_FUNCTION
-  // Just to know which program is running on my Arduino
-  Serial.println(F("START " __FILE__ " from " __DATE__ "\r\nUsing library version " VERSION_IRREMOTE));
-  Serial.print(F("Send IR signals at pin "));
-  Serial.println(IR_SEND_PIN);
-
-  //IrSender.begin(); // Start with IR_SEND_PIN as send pin and if NO_LED_FEEDBACK_CODE is NOT defined, enable feedback LED at default feedback LED pin
-  IrSender.begin(DISABLE_LED_FEEDBACK); // Start with IR_SEND_PIN as send pin and disable feedback LED at default feedback LED pin
+  IrSender.begin();
 #endif
 
   // initialize EEPROM with predefined size
@@ -3225,14 +3222,6 @@ void sub_test_p(void) {
 void sub_test_q(void) {
 #ifndef DISABLE_IR_FUNCTION
   char c;
-  /*
-   * Set up the data to be sent.
-   * For most protocols, the data is build up with a constant 8 (or 16 byte) address
-   * and a variable 8 bit command.
-   * There are exceptions like Sony and Denon, which have 5 bit address.
-  */
-  uint8_t sCommand = 0x34;
-  uint8_t sRepeats = 0;
 
   Serial.println("Sub-test Q - IR");
 
@@ -3240,37 +3229,60 @@ void sub_test_q(void) {
   while(1){
     if(Serial.available()) {
       c = Serial.read();
-      break;
+      if(isalnum(c)) break;
     }
     delay(100);
   }
   Serial.println(c);
 
-  if(c == '0') {  // Send IR
-    Serial.println();
-    Serial.print(F("Send now: address=0x00, command=0x"));
-    Serial.print(sCommand, HEX);
-    Serial.print(F(", repeats="));
-    Serial.print(sRepeats);
-    Serial.println();
-
-    Serial.println(F("Send standard NEC with 8 bit address"));
-    Serial.flush();
-
-    // Receiver output for the first loop must be: Protocol=NEC Address=0x102 Command=0x34 Raw-Data=0xCB340102 (32 bits)
-    IrSender.sendNEC(0x00, sCommand, sRepeats);
-#if 0
-    /*
-     * Increment send values
-     */
-    sCommand += 0x11;
-    sRepeats++;
-    // clip repeats at 4
-    if (sRepeats > 4) {
-        sRepeats = 4;
+  if(c == '0') {  // PIN_IR
+    uint8_t ir_pin = 0;
+    while(1) {
+      if(Serial.available()) {
+        c = Serial.read();
+        if(isalnum(c)){
+          Serial.println(c);
+        } else {
+          continue;
+        }
+      }
+      if(c == 'q'){
+        Serial.println("Quit loop");
+        break;
+      }
+      Serial.printf("PIN_IR: %d\r\n", ir_pin);
+      digitalWrite(PIN_IR, ir_pin);
+      if(ir_pin){
+        ir_pin = 0;
+      } else {
+        ir_pin = 1;
+      }
+      delay(1000);
     }
-#endif
-    delay(100);  // delay must be greater than 5 ms (RECORD_GAP_MICROS), otherwise the receiver sees it as one long signal
+  } else if(c == '1') {
+
+      Serial.println("Send NEC Raw 32bit Data");
+
+      // Address: 0x00, Command: 0x07
+      IrSender.sendNEC(0x00FFE01F);
+
+  } else if(c == '2') {
+
+      Serial.println("Send Raw Data");
+
+      // F609FF00
+      uint16_t irSignal1[] = {9000, 4450, 600, 550, 550, 550, 600, 550, 550, 550, 600, 500, 600, 550, 550, 600, 550, 550, 600, 1650, 550, 1700, 550, 1700, 550, 1700, 550, 1700, 550, 1700, 550, 1650, 600, 1650, 550, 1700, 550, 550, 600, 550, 550, 1700, 550, 550, 600, 500, 600, 550, 550, 600, 550, 550, 600, 1650, 550, 1700, 550, 550, 600, 1650, 550, 1700, 550, 1700, 550, 1700, 550}; // NEC FF906F
+      // E21DFF00
+      uint16_t irSignal2[] = {9000, 4500, 550, 550, 600, 550, 550, 550, 550, 600, 550, 550, 600, 550, 550, 550, 550, 550, 600, 1650, 600, 1700, 500, 1700, 600, 1700, 500, 1700, 550, 1700, 550, 1700, 550, 1700, 550, 1700, 550, 550, 550, 1700, 550, 1700, 550, 1700, 550, 550, 550, 550, 600, 550, 550, 550, 600, 1700, 500, 600, 550, 550, 600, 500, 600, 1650, 600, 1650, 600, 1650, 550}; // NEC FFB847
+      // F807FF00
+      uint16_t irSignal3[] = {9000, 4500, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 1700, 550, 1700, 550, 1700, 550, 1700, 550, 1700, 550, 1700, 550, 1700, 550, 1700, 550, 1700, 550, 1700, 550, 1700, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 1700, 550, 1700, 550, 1700, 550, 1700, 550, 1700, 550}; // NEC FFB847
+
+      IrSender.sendRaw(irSignal1, 67, 38);
+      delay(100);
+      IrSender.sendRaw(irSignal2, 67, 38);
+      delay(100);
+      IrSender.sendRaw(irSignal3, 67, 38);
+
   } else {
     Serial.println("Invalid Test Number");
     return;

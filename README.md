@@ -24,11 +24,35 @@
 
   Arduino IDE : Tools --> Manage Libraries... --> Library Manager
 
-  Install이 필요한 Library : AsyncDelay, Ethernet_Generic, SoftWire
+  Install이 필요한 Library : AsyncDelay, Ethernet_Generic, SoftWire, Adafruit_SHT4x, ICM42670P, DFRobot_TMF8x01
 
 - User Arduino Library (.ZIP) 추가
 
   Arduino IDE : Tools --> Sketch --> Include Library --> Add .ZIP Libraries...
+
+  Install이 필요한 (.ZIP) Library : PZEM004Tv30-pms-x.x.x.zip, SC16IS752Serial-pms-x.x.x.zip, IRremoteESP8266-pms-x.x.x.zip (Optional)
+
+## Definition Setup depends on Hardware
+- Select PMS01/04
+
+  사용하고자 하는 Hardware에 따라 pms04.ino 파일 상단에서 Definition 설정이 필요합니다.
+
+  PMS04 사용의 경우
+  ```
+  //#define SYS_PMS_HW    SYS_PMS01
+  #define SYS_PMS_HW   SYS_PMS04
+  ```
+  PMS01 사용의 경우
+  ```
+  #define SYS_PMS_HW    SYS_PMS01
+  //#define SYS_PMS_HW   SYS_PMS04
+  ```
+- IR 송신 사용시
+
+  IRremoteESP8266-pms-x.x.x.zip 설치
+  ```
+  //#define DISABLE_IR_FUNCTION
+  ```
 ## Sample Source Code for Hardware Basic Operation
 - 실행 방법
 
