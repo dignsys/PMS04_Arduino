@@ -24,7 +24,7 @@
 
   Arduino IDE : Tools --> Manage Libraries... --> Library Manager
 
-  Install이 필요한 Library : AsyncDelay, Ethernet_Generic, SoftWire, Adafruit_SHT4x, ICM42670P, DFRobot_TMF8x01
+  Install이 필요한 Library : AsyncDelay, Ethernet_Generic, SoftWire
 
 - User Arduino Library (.ZIP) 추가
 
