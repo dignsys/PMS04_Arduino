@@ -84,8 +84,6 @@
 #define SC_RX_BUF_SIZE   128
 #define SC_TX_BUF_SIZE   128
 
-#define PIN_SC16IS752_RST    15
-
 #define PIN_GPIO_CHA_RX_BIT   (1 << 4)
 #define PIN_GPIO_CHA_TX_BIT   (1 << 5)
 #define PIN_GPIO_CHB_RX_BIT   (1 << 0)
@@ -98,7 +96,7 @@ class SC16IS752Serial : public Stream
 {
 public:
   // public methods
-  SC16IS752Serial(uint8_t port);
+  SC16IS752Serial(uint8_t port, uint8_t addr = 0, uint8_t channel = 0);
   ~SC16IS752Serial();
   void begin(uint32_t speed);
   void end();

@@ -10,7 +10,7 @@
 #include <SC16IS752Serial.h>
 
 // Constructor. 
-SC16IS752Serial::SC16IS752Serial(uint8_t port)
+SC16IS752Serial::SC16IS752Serial(uint8_t port, uint8_t addr, uint8_t channel)
 {
   if (port < 0 || port >= 4) {
     return;
@@ -23,6 +23,16 @@ SC16IS752Serial::SC16IS752Serial(uint8_t port)
       case 1 : _address = SC16IS752_SADDR0; _channel = SC16IS752_CHANNEL_B; break;
       case 2 : _address = SC16IS752_SADDR1; _channel = SC16IS752_CHANNEL_A; break;
       case 3 : _address = SC16IS752_SADDR1; _channel = SC16IS752_CHANNEL_B; break;
+  }
+  if(addr) {
+    _address = addr;
+  }
+  if(channel) {
+    if(channel == 'A') {
+      _channel = SC16IS752_CHANNEL_A;
+    } else if(channel == 'B') {
+      _channel = SC16IS752_CHANNEL_B;
+    }
   }
   Serial.print("port : "); Serial.print(_port);
   Serial.print(", address : 0x"); Serial.print(_address, HEX);
