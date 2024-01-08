@@ -23,6 +23,8 @@
 #include <IRsend.h>
 #endif
 
+#define VERSION_PMS_FW  "20240108"
+
 #define SYS_PMS01     1
 #define SYS_PMS04     4
 //#define SYS_PMS_HW    SYS_PMS01
@@ -301,6 +303,10 @@ void setup() {
   pinMode(PIN_IR, OUTPUT);
   digitalWrite(PIN_IR, LOW);
 
+  // PCM Control (LOW: AC Power-OFF, HIGH: AC Power-ON)
+  pinMode(PIN_PCM_CONTROL, OUTPUT);
+  digitalWrite(PIN_PCM_CONTROL, HIGH);
+
   // Arduino USART setup.
   Serial.begin(115200);
   Serial1.begin(115200, SERIAL_8N1, PIN_RS232_RXD, PIN_RS232_TXD);  // RS232
@@ -353,7 +359,7 @@ void loop() {
   Serial.println();
   Serial.println("PMS[01/04] Main Loop");
   Serial.println("(C) 2023 Dignsys");
-  Serial.println();
+  Serial.printf("VERSION: %s\r\n\r\n", VERSION_PMS_FW);
 
   char c = 0;
   int idx=0;
@@ -361,6 +367,7 @@ void loop() {
   uint8_t addr;
   PZEM004Tv30* ppzem[4];
   char log_msg[256] = {0,};
+  uint8_t led_toggle = 0;
 
 #if (SYS_PMS_HW == SYS_PMS04)
   ppzem[0] = &pzem3;
@@ -450,6 +457,15 @@ void loop() {
       log_idx = 0;
     }
 #endif
+    if(led_toggle){
+      led_toggle = 0;
+      dual_uart_led_set(2, LED_ON);
+      dual_uart_led_set(3, LED_OFF);
+    } else {
+      led_toggle = 1;
+      dual_uart_led_set(2, LED_OFF);
+      dual_uart_led_set(3, LED_ON);
+    }
     delay(1000);
 
   }
@@ -462,7 +478,7 @@ void sub_test_loop() {
   Serial.println();
   Serial.println("PMS[01/04] Board Sub-testing.");
   Serial.println("(C) 2023 Dignsys");
-  Serial.println();
+  Serial.printf("VERSION: %s\r\n\r\n", VERSION_PMS_FW);
 
   char c;
   while(c != 'x') {
@@ -2912,8 +2928,10 @@ void sub_test_m(void) {
   } else if(c == '6') {  // GPIO LOW
     digitalWrite(PIN_GPIO, LOW);
   } else if(c == '7') {  // PCM_Control HIGH
+    Serial.println("PCM Control to HIGH - AC Power-ON");
     digitalWrite(PIN_PCM_CONTROL, HIGH);
   } else if(c == '8') {  // PCM_Control LOW
+    Serial.println("PCM Control to LOW - AC Power-OFF");
     digitalWrite(PIN_PCM_CONTROL, LOW);
   } else if(c == '9') {
     Serial.print("System will be restart in 10 seconds");
