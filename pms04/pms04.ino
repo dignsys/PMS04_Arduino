@@ -17,18 +17,26 @@
 #include <ESPmDNS.h>
 #include <Update.h>
 
-#define DISABLE_IR_FUNCTION
+//#define DISABLE_IR_FUNCTION
 #ifndef DISABLE_IR_FUNCTION
 #include <IRremoteESP8266.h>
 #include <IRsend.h>
 #endif
 
-#define VERSION_PMS_FW  "20240108"
+#define VERSION_PMS_FW  "20240208"
 
 #define SYS_PMS01     1
 #define SYS_PMS04     4
 //#define SYS_PMS_HW    SYS_PMS01
 #define SYS_PMS_HW   SYS_PMS04
+
+//#define ENABLE_PM_LED_TOGGLE
+
+#if (SYS_PMS_HW == SYS_PMS04)
+const char* product_name = "PMS04";
+#else
+const char* product_name = "PMS01";
+#endif
 
 SC16IS752Serial serial0 = SC16IS752Serial(0);
 SC16IS752Serial serial1 = SC16IS752Serial(1);
@@ -145,12 +153,14 @@ int i2c_write(uint8_t addr, uint8_t reg, uint8_t* pdata, uint8_t dlen);
 int i2c_read_sw(uint8_t addr, uint8_t reg, uint8_t* pdata, uint8_t dlen);
 int i2c_write_sw(uint8_t addr, uint8_t reg, uint8_t* pdata, uint8_t dlen);
 
-#define LED_ON      1
-#define LED_OFF     0
-#define ETH_RST_ON  1
-#define ETH_RST_OFF 0
-#define SWITCH_ON   1
-#define SWITCH_OFF  0
+#define LED_ON        1
+#define LED_OFF       0
+#define ETH_RST_ON    1
+#define ETH_RST_OFF   0
+#define SWITCH_ON     1
+#define SWITCH_OFF    0
+#define PM_ACTIVE     1
+#define PM_INACTIVE   0
 
 void gpio_exp_conf(void);
 void gpio_exp_read(uint16_t* pdata);
@@ -357,7 +367,7 @@ void setup() {
 void loop() {
 
   Serial.println();
-  Serial.println("PMS[01/04] Main Loop");
+  Serial.printf("%s Main Loop\r\n", product_name);
   Serial.println("(C) 2023 Dignsys");
   Serial.printf("VERSION: %s\r\n\r\n", VERSION_PMS_FW);
 
@@ -367,6 +377,8 @@ void loop() {
   uint8_t addr;
   PZEM004Tv30* ppzem[4];
   char log_msg[256] = {0,};
+  uint8_t pm_active[4] = {0,};
+  uint8_t pm_led_toggle[4] = {0,};
   uint8_t led_toggle = 0;
 
 #if (SYS_PMS_HW == SYS_PMS04)
@@ -391,9 +403,11 @@ void loop() {
     }
 
     // PZEM Address Check
+    led_tx(LED_ON);
     addr = ppzem[idx]->readAddress();
     Serial.print("Custom Address[PM-"); Serial.print(idx+1); Serial.print("]: ");
     Serial.println(addr, HEX);
+    led_tx(LED_OFF);
 
     if(!log_idx){
       memset(log_msg, 0x00, sizeof(log_msg));
@@ -403,15 +417,18 @@ void loop() {
 
     if(addr) {
 
-      led_pm(idx+1, LED_ON);
+      //led_pm(idx+1, LED_ON);
+      pm_active[idx] = PM_ACTIVE;
 
       // Read the data from the sensor
+      led_rx(LED_ON);
       float voltage = ppzem[idx]->voltage();
       float current = ppzem[idx]->current();
       float power = ppzem[idx]->power();
       float energy = ppzem[idx]->energy();
       float frequency = ppzem[idx]->frequency();
       float pf = ppzem[idx]->pf();
+      led_rx(LED_OFF);
 
       // Check if the data is valid
       if(isnan(voltage)){
@@ -437,13 +454,77 @@ void loop() {
         Serial.print("PF: ");           Serial.println(pf);
 
       }
-      led_pm(idx+1, LED_OFF);
+      //led_pm(idx+1, LED_OFF);
     }
     else{
-      led_pm(idx+1, LED_OFF);
+      //led_pm(idx+1, LED_OFF);
+      pm_active[idx] = PM_INACTIVE;
     }
 
     Serial.println();
+
+    if(led_toggle){
+      led_toggle = 0;
+#if (SYS_PMS_HW == SYS_PMS04)
+      dual_uart_led_set(4, LED_ON);
+      dual_uart_led_set(5, LED_OFF);
+#endif
+      dual_uart_led_set(2, LED_ON);
+      dual_uart_led_set(3, LED_OFF);
+    } else {
+      led_toggle = 1;
+#if (SYS_PMS_HW == SYS_PMS04)
+      dual_uart_led_set(4, LED_OFF);
+      dual_uart_led_set(5, LED_ON);
+#endif
+      dual_uart_led_set(2, LED_OFF);
+      dual_uart_led_set(3, LED_ON);
+    }
+
+#if (SYS_PMS_HW == SYS_PMS04)
+    for(int i = 0; i < 4; i++){
+      //Serial.printf("idx:%d, PM_Active (%d) - Toggle (%d)\r\n", i, pm_active[i], pm_led_toggle[i]);
+      if(pm_active[i]) {
+        if(pm_led_toggle[i]) {
+          pm_led_toggle[i] = 0;
+#ifdef ENABLE_PM_LED_TOGGLE
+          led_pm(i+1, LED_OFF);
+#else
+          led_pm(i+1, LED_ON);
+#endif
+        } else {
+          pm_led_toggle[i] = 1;
+          led_pm(i+1, LED_ON);
+        }
+      } else {
+        pm_led_toggle[i] = 0;
+        led_pm(i+1, LED_OFF);
+      }
+    }
+    if(pm_active[0] && pm_active[1] && pm_active[2] && pm_active[3]){
+      led_fail(LED_OFF);
+    } else {
+      led_fail(LED_ON);
+    }
+#elif  (SYS_PMS_HW == SYS_PMS01)
+    if(pm_active[0]){
+      if(pm_led_toggle[0]) {
+        pm_led_toggle[0] = 0;
+#ifdef ENABLE_PM_LED_TOGGLE
+        led_pm(1, LED_OFF);
+#else
+        led_pm(1, LED_ON);
+#endif
+      } else {
+        pm_led_toggle[0] = 1;
+        led_pm(1, LED_ON);
+      }
+
+      led_fail(LED_OFF);
+    } else {
+      led_fail(LED_ON);
+    }
+#endif
 
 #if (SYS_PMS_HW == SYS_PMS04)
     if(++idx > 3){
@@ -457,15 +538,7 @@ void loop() {
       log_idx = 0;
     }
 #endif
-    if(led_toggle){
-      led_toggle = 0;
-      dual_uart_led_set(2, LED_ON);
-      dual_uart_led_set(3, LED_OFF);
-    } else {
-      led_toggle = 1;
-      dual_uart_led_set(2, LED_OFF);
-      dual_uart_led_set(3, LED_ON);
-    }
+
     delay(1000);
 
   }
@@ -476,7 +549,7 @@ void loop() {
 void sub_test_loop() {
 
   Serial.println();
-  Serial.println("PMS[01/04] Board Sub-testing.");
+  Serial.printf("%s Board Sub-testing.\r\n", product_name);
   Serial.println("(C) 2023 Dignsys");
   Serial.printf("VERSION: %s\r\n\r\n", VERSION_PMS_FW);
 
@@ -2663,8 +2736,8 @@ void sub_test_l(void) {
     data[0] = 0*0x10;   // 10 Seconds
     data[0] += 0;       // Seconds
 
-    data[1] = 5*0x10;   // 10 Minutes
-    data[1] += 5;       // Minutes
+    data[1] = 3*0x10;   // 10 Minutes
+    data[1] += 2;       // Minutes
 
     //data[2] = 0x40;   // 12-Hour Mode
     data[2] = 0x00;     // 24-Hour Mode
@@ -2672,16 +2745,16 @@ void sub_test_l(void) {
     data[2] += 1*0x10;  // 10 Hours
     data[2] += 6;       // Hours
 
-    data[3] = 2;        // Day (1~7), Monday first
+    data[3] = 1;        // Day (1~7), Monday first
 
-    data[4] = 1*0x10;   // 10 Date
-    data[4] += 7;       // Date
+    data[4] = 0*0x10;   // 10 Date
+    data[4] += 8;       // Date
 
-    data[5] = 1*0x10;   // 10 Month
-    data[5] += 0;       // Month
+    data[5] = 0*0x10;   // 10 Month
+    data[5] += 1;       // Month
 
     data[6] = 2*0x10;   // 10 Year
-    data[6] += 3;       // Year
+    data[6] += 4;       // Year
     sw.beginTransmission(I2C_ADDR_RTC);
     sw.write(uint8_t(0));
     for (int i = 0; i < 8; ++i) {
