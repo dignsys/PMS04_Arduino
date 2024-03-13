@@ -28,7 +28,7 @@
 
 - User Arduino Library (.ZIP) 추가
 
-  Arduino IDE : Tools --> Sketch --> Include Library --> Add .ZIP Libraries...
+  Arduino IDE : Sketch --> Include Library --> Add .ZIP Libraries...
 
   Install이 필요한 (.ZIP) Library : PZEM004Tv30-pms-x.x.x.zip, SC16IS752Serial-pms-x.x.x.zip, IRremoteESP8266-pms-x.x.x.zip (Optional)
 
