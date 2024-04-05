@@ -23,12 +23,14 @@
 #include <IRsend.h>
 #endif
 
-#define VERSION_PMS_FW  "20240208"
+#define VERSION_PMS_FW  "20240405"
 
 #define SYS_PMS01     1
 #define SYS_PMS04     4
 //#define SYS_PMS_HW    SYS_PMS01
 #define SYS_PMS_HW   SYS_PMS04
+
+#define BOARD_VER_2_0
 
 //#define ENABLE_PM_LED_TOGGLE
 
@@ -382,10 +384,17 @@ void loop() {
   uint8_t led_toggle = 0;
 
 #if (SYS_PMS_HW == SYS_PMS04)
+#ifdef BOARD_VER_2_0
+  ppzem[0] = &pzem0;
+  ppzem[1] = &pzem1;
+  ppzem[2] = &pzem2;
+  ppzem[3] = &pzem3;
+#else
   ppzem[0] = &pzem3;
   ppzem[1] = &pzem2;
   ppzem[2] = &pzem1;
   ppzem[3] = &pzem0;
+#endif
 #elif (SYS_PMS_HW == SYS_PMS01)
   ppzem[0] = &pzem0;
 #endif
@@ -3300,7 +3309,7 @@ void sub_test_p(void) {
 
     if(Serial.available()) {
       c = Serial.read();
-      if(c == 'q') {
+      if((c == 'q') || (c == '#')) {
         Serial.println("Exit Data Receive");
         break;
       }
