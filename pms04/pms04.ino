@@ -23,7 +23,7 @@
 #include <IRsend.h>
 #endif
 
-#define VERSION_PMS_FW  "20240405"
+#define VERSION_PMS_FW  "20240417"
 
 #define SYS_PMS01     1
 #define SYS_PMS04     4
@@ -175,7 +175,7 @@ void led_fail(uint8_t on);
 
 void eth_rst(void);
 
-int get_swtich_val(uint8_t num);
+int get_switch_val(uint8_t num);
 
 void dual_uart_led_init(void);
 void dual_uart_led_set(uint8_t num, uint8_t on);
@@ -282,6 +282,87 @@ void sub_test_y(void);
 void sub_test_z(void);
 void sub_test_loop(void);
 
+void prt_cmd_info_all(void){
+
+  Serial.println("l: RTC Test");
+  Serial.println("m: IO & Expander Test");
+  Serial.println("n: Network Function Test");
+  Serial.println("o: UART TX Test");
+  Serial.println("p: UART RX Test");
+  Serial.println("q: IR Test");
+  Serial.println("r: EEPROM Test");
+  Serial.println("s: LittleFS Test");
+  Serial.println("t: Web Server Test");
+  Serial.println("v: Settings Test");
+  Serial.println("#: Return to Main Loop");
+  Serial.println();
+}
+
+void prt_cmd_info_l(void){
+
+  Serial.println("3: set (time value should be set in the source code)");
+  Serial.println("4: Read RTC time value");
+  Serial.println();
+}
+
+void prt_cmd_info_m(void){
+
+  Serial.println("0: Read SW3 DIP Switch (ON: Low, OFF: High)");
+  Serial.println("1: Front LED Blink Test");
+  Serial.println("5: GPIO (CON2) to HIGH");
+  Serial.println("6: GPIO (CON2) to LOW");
+  Serial.println("7: PCM Control to HIGH - AC Power-ON");
+  Serial.println("8: PCM Control to LOW - AC Power-OFF");
+  Serial.println();
+}
+
+void prt_cmd_info_n(void){
+
+  Serial.println("3: Initialize network setting");
+  Serial.println("4: Check network port status");
+  Serial.println("7: Set DHCP");
+  Serial.println();
+}
+
+void prt_cmd_info_o(void){
+
+  Serial.println("RS232(CON4) TX or RS485(CON3) TX");
+  Serial.println("  Press # to return to main loop during transmitting data");
+  Serial.println();
+}
+
+void prt_cmd_info_p(void){
+
+  Serial.println("RS232(CON4) RX or RS485(CON3) RX");
+  Serial.println("  Press # to return to main loop during receiving data");
+  Serial.println();
+}
+
+void prt_cmd_info_q(void){
+
+  Serial.println("1: Send NEC Raw 32bit Data");
+  Serial.println();
+}
+
+void prt_cmd_info_r(void){
+
+  Serial.println("0: Read 512 bytes");
+  Serial.println("1: Write 512 sequential data");
+  Serial.println();
+}
+
+void prt_cmd_info_s(void){
+
+}
+
+void prt_cmd_info_t(void){
+
+}
+
+void prt_cmd_info_v(void){
+
+}
+
 // Run this once at power on or reset.
 void setup() {
 
@@ -372,6 +453,7 @@ void loop() {
   Serial.printf("%s Main Loop\r\n", product_name);
   Serial.println("(C) 2023 Dignsys");
   Serial.printf("VERSION: %s\r\n\r\n", VERSION_PMS_FW);
+  Serial.printf("Press # to enter sub-test loop\r\n\r\n");
 
   char c = 0;
   int idx=0;
@@ -562,13 +644,15 @@ void sub_test_loop() {
   Serial.println("(C) 2023 Dignsys");
   Serial.printf("VERSION: %s\r\n\r\n", VERSION_PMS_FW);
 
+  prt_cmd_info_all();
+
   char c;
   while(c != 'x') {
     Serial.printf("Input Command: ");
     while(1){
       if(Serial.available()) {
         c = Serial.read();
-        if(isalnum(c)){
+        if(isalnum(c) || (c == '#')){
           break;
         }
       }
@@ -577,6 +661,9 @@ void sub_test_loop() {
     Serial.printf("%c", c);
     Serial.println();
 
+    if(c == '#') {
+      break;
+    }
     switch(c) {
       case 'a': 
         sub_test_a(0);
@@ -848,7 +935,7 @@ void eth_rst(void){
 
 }
 
-int get_swtich_val(uint8_t num){
+int get_switch_val(uint8_t num){
 
   int ret = 0;
   uint16_t num_bit;
@@ -2705,6 +2792,7 @@ void sub_test_l(void) {
   int numBytes;
   char c;
   Serial.println("Sub-test L - RTC");
+  prt_cmd_info_l();
 
   Serial.print("Input Test Number: ");
   while(1){
@@ -2788,6 +2876,7 @@ void sub_test_m(void) {
   char c;
   uint8_t reg;
   Serial.println("Sub-test M - IO Expander");
+  prt_cmd_info_m();
 
   Serial.print("Input Test Number: ");
   while(1){
@@ -2804,7 +2893,7 @@ void sub_test_m(void) {
     Serial.print("data: "); Serial.println(data, HEX);
 
     for(int i=1; i<9; i++){
-      if(get_swtich_val(i) == SWITCH_ON){
+      if(get_switch_val(i) == SWITCH_ON){
         Serial.print("Switch"); Serial.print(i); Serial.println(": ON");
       } else {
         Serial.print("Switch"); Serial.print(i); Serial.println(": OFF");
@@ -3036,6 +3125,7 @@ void sub_test_n(void) {
   int numBytes;
   char c;
   Serial.println("Sub-test N - W5500");
+  prt_cmd_info_n();
 
   Serial.print("Input Test Number: ");
   while(1){
@@ -3102,7 +3192,7 @@ void sub_test_n(void) {
     pspi->setFrequency(40000000);
     Ethernet._pinRST = PIN_W5500_RST;
     Ethernet._pinCS = PIN_ETH_CS;
-    Ethernet.setHostname("PMS_001");
+    Ethernet.setHostname("PMS0X_001");
     Ethernet.setRetransmissionCount(3);
     Ethernet.setRetransmissionTimeout(4000);
 
@@ -3205,6 +3295,7 @@ void sub_test_o(void) {
   char c;
   uint8_t data = 0;
   Serial.println("Sub-test O - UART TX");
+  prt_cmd_info_o();
 
   Serial.print("Select Port (1:RS232, 2:RS485): ");
   while(1){
@@ -3261,6 +3352,7 @@ void sub_test_p(void) {
   uint8_t data[128] = {0,};
   uint16_t length, rsize;
   Serial.println("Sub-test P - UART RX");
+  prt_cmd_info_p();
 
   Serial.print("Select Port (1:RS232, 2:RS485): ");
   while(1){
@@ -3324,6 +3416,7 @@ void sub_test_q(void) {
   char c;
 
   Serial.println("Sub-test Q - IR");
+  prt_cmd_info_q();
 
   Serial.print("Input Test Number: ");
   while(1){
@@ -3395,6 +3488,7 @@ void sub_test_r(void) {
   uint8_t data;
   char c;
   Serial.println("Sub-test R - EEPROM");
+  prt_cmd_info_r();
 
   Serial.print("Input Test Number: ");
   while(1){
@@ -3430,6 +3524,7 @@ void sub_test_s(void) {
   int r_data = 0;
   String strLog;
   Serial.println("Sub-test S - LiitleFS");
+  prt_cmd_info_s();
 
   Serial.print("Input Test Number: ");
   while(1){
@@ -3501,6 +3596,7 @@ void sub_test_t(void) {
   char c;
   int r_data = 0;
   Serial.println("Sub-test T - Web Server");
+  prt_cmd_info_t();
 
   Serial.print("Input Test Number: ");
   while(1){
@@ -3604,6 +3700,7 @@ void sub_test_v(void) {
   String str_in;
  
   Serial.println("Sub-test V - Settings");
+  prt_cmd_info_v();
 
   Serial.print("Input Test Number: ");
   while(1){
