@@ -24,7 +24,7 @@
 
   Arduino IDE : Tools --> Manage Libraries... --> Library Manager
 
-  Install이 필요한 Library : AsyncDelay, Ethernet_Generic, SoftWire
+  Install이 필요한 Library : AsyncDelay, Ethernet_Generic, SoftWire, PubSubClient, ArduinoJson
 
 - User Arduino Library (.ZIP) 추가
 
