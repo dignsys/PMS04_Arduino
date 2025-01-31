@@ -16,6 +16,8 @@
 #include <WebServer.h>
 #include <ESPmDNS.h>
 #include <Update.h>
+#include <PubSubClient.h>
+#include <ArduinoJson.h>
 
 //#define DISABLE_IR_FUNCTION
 #ifndef DISABLE_IR_FUNCTION
@@ -23,14 +25,14 @@
 #include <IRsend.h>
 #endif
 
-#define VERSION_PMS_FW  "20240417"
+#define VERSION_PMS_FW  "20250124"
 
 #define SYS_PMS01     1
 #define SYS_PMS04     4
 //#define SYS_PMS_HW    SYS_PMS01
 #define SYS_PMS_HW   SYS_PMS04
 
-#define BOARD_VER_2_0
+#define PMS04_BOARD_VER_2_0
 
 //#define ENABLE_PM_LED_TOGGLE
 
@@ -187,6 +189,38 @@ const char* na_str = "***";
 
 char gv_ssid[32] = {0,};
 char gv_passwd[32] = {0,};
+char gv_mqtt[32] = {0,};
+
+// NTP Configuration
+const char* NTP_SERVER = "pool.ntp.org";
+const long GMT_OFFSET_SEC = 3600 * 9;  // KST (UTC+9)
+const int DAYLIGHT_OFFSET_SEC = 0;
+
+//#define USE_FIXED_WIFI_MQTT
+const char* WIFI_SSID = "TEST_AP";
+const char* WIFI_PASSWORD = "ap_password";
+
+const char* MQTT_SERVER = "broker.emqx.io";
+//const char* MQTT_SERVER = "192.168.1.187";  // Local MQTT server IP
+const int MQTT_PORT = 1883;
+const char* MQTT_TOPIC = "pms01/power";
+
+WiFiClient espClient;
+PubSubClient mqtt_client(espClient);
+
+void connectToMQTT(void);
+void mqtt_callback(char* topic, byte* message, unsigned int length);
+
+StaticJsonDocument<200> doc;
+
+uint8_t wifi_connected = 0;
+
+float gvf_voltage = 0.;
+float gvf_current = 0.;
+float gvf_power = 0.;
+float gvf_energy = 0.;
+float gvf_frequency = 0.;
+float gvf_pf = 0.;
 
 WebServer server(80);
 bool fsFound = false;
@@ -253,6 +287,7 @@ bool initFS(bool format, bool force);
 void lfs_log(char* pmsg);
 
 void init_ethernet(void);
+void init_settings(void);
 void update_settings(void);
 void load_settings(void);
 void update_serial_number(char* pstr);
@@ -281,6 +316,7 @@ void sub_test_v(void);
 void sub_test_y(void);
 void sub_test_z(void);
 void sub_test_loop(void);
+void sub_task_mqtt_pub(void);
 
 void prt_cmd_info_all(void){
 
@@ -302,6 +338,7 @@ void prt_cmd_info_l(void){
 
   Serial.println("3: set (time value should be set in the source code)");
   Serial.println("4: Read RTC time value");
+  Serial.println("5: Set system time through NTP");
   Serial.println();
 }
 
@@ -321,6 +358,7 @@ void prt_cmd_info_n(void){
   Serial.println("3: Initialize network setting");
   Serial.println("4: Check network port status");
   Serial.println("7: Set DHCP");
+  Serial.println("9: MQTT connection");
   Serial.println();
 }
 
@@ -361,6 +399,13 @@ void prt_cmd_info_t(void){
 
 void prt_cmd_info_v(void){
 
+  Serial.println("0: Initialize file system");
+  Serial.println("1: WLAN setting");
+  Serial.println("2: LAN setting");
+  Serial.println("3: Server setting");
+  Serial.println("4: SN setting");
+  Serial.println("5: MQTT Server setting");
+  Serial.println();
 }
 
 // Run this once at power on or reset.
@@ -444,6 +489,47 @@ void setup() {
 
   esp_read_mac(nc_mac, ESP_MAC_ETH);
 
+#ifdef USE_FIXED_WIFI_MQTT
+  strcpy(gv_ssid, WIFI_SSID);
+  strcpy(gv_passwd, WIFI_PASSWORD);
+  strcpy(gv_mqtt, MQTT_SERVER);
+#endif
+
+  if(gv_ssid[0]){
+    WiFi.begin(gv_ssid, gv_passwd);
+    Serial.println("WiFi starting");
+    // Wait for connection
+    int cnt = 0;
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+      if(++cnt > 120) break;
+    }
+
+    if((WiFi.status() == WL_CONNECTED)){
+      Serial.println("");
+      Serial.print("Connected to ");
+      Serial.println(gv_ssid);
+      Serial.print("IP address: ");
+      Serial.println(WiFi.localIP());
+
+      wifi_connected = 1;
+
+      // Initialize time
+      configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
+
+      struct tm timeinfo;
+      if (getLocalTime(&timeinfo)) {
+        Serial.printf("Current time: %s", asctime(&timeinfo));
+      } else {
+        Serial.println("Failed to obtain time");
+      }
+
+      mqtt_client.setServer(gv_mqtt, MQTT_PORT);
+      mqtt_client.setCallback(mqtt_callback);
+      Serial.printf("Set MQTT Server: %s\n", gv_mqtt);
+    }
+  }
 }
 
 // Process this loop whenever we see a serial event or interrupt from the SC16IS752
@@ -464,9 +550,10 @@ void loop() {
   uint8_t pm_active[4] = {0,};
   uint8_t pm_led_toggle[4] = {0,};
   uint8_t led_toggle = 0;
+  int cnt_mqtt_pub = 0;
 
 #if (SYS_PMS_HW == SYS_PMS04)
-#ifdef BOARD_VER_2_0
+#ifdef PMS04_BOARD_VER_2_0
   ppzem[0] = &pzem0;
   ppzem[1] = &pzem1;
   ppzem[2] = &pzem2;
@@ -536,6 +623,13 @@ void loop() {
           Serial.println("Error reading power factor");
       } else {
 
+        gvf_voltage = voltage;
+        gvf_current = current;
+        gvf_power = power;
+        gvf_energy = energy;
+        gvf_frequency = frequency;
+        gvf_pf = pf;
+
         // Print the values to the Serial console
         Serial.print("Voltage: ");      Serial.print(voltage);      Serial.println("V");
         Serial.print("Current: ");      Serial.print(current);      Serial.println("A");
@@ -553,6 +647,19 @@ void loop() {
     }
 
     Serial.println();
+
+    if(wifi_connected){
+      if (!mqtt_client.connected()) {
+        connectToMQTT();
+      }
+      if(++cnt_mqtt_pub > 60){
+        sub_task_mqtt_pub();
+        cnt_mqtt_pub = 0;
+      } else {
+        Serial.printf("MQTT Pub Count: %d\n", cnt_mqtt_pub);
+      }
+      mqtt_client.loop();
+    }
 
     if(led_toggle){
       led_toggle = 0;
@@ -1816,6 +1923,21 @@ void lfs_log(char* pmsg){
 
 }
 
+void init_settings(void){
+
+  memset(gv_ssid, 0x00, sizeof(gv_ssid));
+  memset(gv_passwd, 0x00, sizeof(gv_passwd));
+  memset(gv_mqtt, 0x00, sizeof(gv_mqtt));
+
+  nc_ip.fromString("192.168.1.35");
+  nc_dns.fromString("8.8.8.8");
+  nc_gateway.fromString("192.168.1.1");
+  nc_subnet.fromString("255.255.255.0");
+  nc_server.fromString("192.168.1.200");
+  nc_ip_type = IP_TYPE_STATIC;
+
+}
+
 void update_settings(void){
 
   uint8_t mdata[6] = {0,};
@@ -1876,6 +1998,14 @@ void update_settings(void){
   memset(str_tmp, 0x00, sizeof(str_tmp));
   load_serial_number((char*) sdata);
   sprintf((char*) str_tmp, "[System/SN]: %s", sdata);
+  appendFile(LittleFS, "/init.txt", (String((char*) str_tmp)+ "\r\n").c_str());
+
+  memset(str_tmp, 0x00, sizeof(str_tmp));
+  if(gv_mqtt[0]){
+    sprintf((char*) str_tmp, "[MQTT/IP]: %s", gv_mqtt);
+  } else {
+    sprintf((char*) str_tmp, "[MQTT/IP]: ***");
+  }
   appendFile(LittleFS, "/init.txt", (String((char*) str_tmp)+ "\r\n").c_str());
 
 }
@@ -1949,6 +2079,17 @@ void load_settings(void){
   str_temp.trim();
   nc_server.fromString(str_temp);
 
+  file.find("[MQTT/IP]:");
+  str_temp = file.readStringUntil('\n');
+  str_temp.trim();
+
+  if(0 != str_temp.compareTo(na_str)){
+    memset(gv_mqtt, 0x00, sizeof(gv_mqtt));
+    strcpy(gv_mqtt, str_temp.c_str());
+  } else {
+    Serial.println("MQTT IP is not valid");
+  }
+
   file.close();
 }
 
@@ -1975,6 +2116,63 @@ void load_serial_number(char* pstr){
   for(int i = 0; i < 16; i++){
     pstr[i] = EEPROM.read(EEPROM_ADDR_SN+i);
     Serial.printf("EEPROM[%d]: %02x\r\n", i, pstr[i]);
+  }
+}
+
+void connectToMQTT(void) {
+
+  int rcnt = 0;
+  while (!mqtt_client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    if (mqtt_client.connect("PMS01Client")) {
+      Serial.printf(" connected\r\n");
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(mqtt_client.state());
+      if(++rcnt > 3) break;
+      Serial.println(" try again in 5 seconds");
+      delay(5000);
+    }
+  }
+}
+
+void mqtt_callback(char* topic, byte* message, unsigned int length) {
+
+  String stMessage;
+  Serial.print("Message arrived on topic: ");
+  Serial.print(topic);
+  Serial.print(". Message: ");
+
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)message[i]);
+    stMessage += (char)message[i];
+  }
+  Serial.println();
+}
+
+void sub_task_mqtt_pub(void) {
+
+  time_t now = time(nullptr);
+  struct tm* timeinfo = localtime(&now);
+  char timestamp[24];
+  strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", timeinfo);
+
+  doc.clear();
+  doc["timestamp"] = timestamp;
+  doc["voltage"] = gvf_voltage;
+  doc["current"] = gvf_current;
+  doc["power"] = gvf_power;
+  doc["energy"] = gvf_energy;
+  doc["frequency"] = gvf_frequency;
+  doc["powerFactor"] = gvf_pf;
+
+  String jsonString;
+  serializeJson(doc, jsonString);
+
+  if (mqtt_client.publish(MQTT_TOPIC, jsonString.c_str())) {
+    Serial.println("Data published to MQTT");
+  } else {
+    Serial.println("Failed to publish data");
   }
 }
 
@@ -2860,6 +3058,18 @@ void sub_test_l(void) {
     sw.endTransmission();
   } else if (c == '4') {  // Read Time
     readTime();
+  } else if (c == '5') {  // Set Time through NTP
+    if(wifi_connected) {
+      // Initialize time
+      configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
+
+      struct tm timeinfo;
+      if (getLocalTime(&timeinfo)) {
+        Serial.printf("Current time: %s", asctime(&timeinfo));
+      } else {
+        Serial.println("Failed to obtain time");
+      }
+    }
   } else {
     Serial.println("Invalid Test Number");
     return;
@@ -3279,8 +3489,14 @@ void sub_test_n(void) {
     Serial.print("DhcpServerIp(): "); Serial.println(dhcp->getDhcpServerIp());
     Serial.print("localIP(): "); Serial.println(dhcp->getLocalIp());
   } else if(c == '9') {
-    //Ethernet.WoL(1);
-    //Serial.print("WoL: "); Serial.println(Ethernet.WoL(), DEC);
+    if(gv_mqtt[0]){
+      mqtt_client.setServer(gv_mqtt, MQTT_PORT);
+    } else {
+      mqtt_client.setServer(MQTT_SERVER, MQTT_PORT);
+    }
+    mqtt_client.setCallback(mqtt_callback);
+
+    if(wifi_connected) connectToMQTT();
   } else {
     Serial.println("Invalid Test Number");
     return;
@@ -3626,6 +3842,9 @@ void sub_test_t(void) {
     Serial.println(gv_ssid);
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
+
+    wifi_connected = 1;
+
   } else if(c == '1') {
     // use mdns for host name resolution
     if (!MDNS.begin(host))  // http://PMSMGR.local
@@ -3695,6 +3914,7 @@ void sub_test_v(void) {
 
   uint8_t data;
   char c;
+  char dummy_c;
   uint8_t update_needed = 0;
   uint8_t str_tmp[128] = {0,};
   String str_in;
@@ -3711,6 +3931,9 @@ void sub_test_v(void) {
     delay(100);
   }
   Serial.println(c);
+  if(Serial.available()){ // dummy read
+    dummy_c = Serial.read();
+  }
 
   if(c == '0') {  // create init file
     fsFound = initFS(true, true);
@@ -3718,6 +3941,7 @@ void sub_test_v(void) {
       Serial.println("Filesystem is not found!");
       return;
     }
+    init_settings();
     update_settings();
 
     readFile(LittleFS, "/init.txt");
@@ -3744,6 +3968,9 @@ void sub_test_v(void) {
       memset(gv_ssid, 0x00, sizeof(gv_ssid));
       strcpy(gv_ssid, cbuf);
       update_needed = 1;
+    }
+    if(Serial.available()){ // dummy read
+      dummy_c = Serial.read();
     }
 
     Serial.print("[WLAN] Enter PASSWD: ");
@@ -3781,6 +4008,8 @@ void sub_test_v(void) {
           cbuf[idx] = 0;
           Serial.println();
           break;
+        } else if(cbuf[idx]=='\r'){
+          cbuf[idx] = 0;
         }
         idx++;
       }
@@ -3798,6 +4027,10 @@ void sub_test_v(void) {
         nc_ip_type = IP_TYPE_DHCP;
         update_needed = 1;
       }
+    }
+
+    if(Serial.available()){ // dummy read
+      dummy_c = Serial.read();
     }
 
     Serial.print("[LAN] Enter IP: ");
@@ -3824,6 +4057,10 @@ void sub_test_v(void) {
       update_needed = 1;
     }
 
+    if(Serial.available()){ // dummy read
+      dummy_c = Serial.read();
+    }
+
     Serial.print("[LAN] Enter Subnet: ");
     memset(cbuf, 0x00, sizeof(cbuf));
     idx = 0;
@@ -3848,6 +4085,10 @@ void sub_test_v(void) {
       update_needed = 1;
     }
 
+    if(Serial.available()){ // dummy read
+      dummy_c = Serial.read();
+    }
+
     Serial.print("[LAN] Enter Gateway: ");
     memset(cbuf, 0x00, sizeof(cbuf));
     idx = 0;
@@ -3870,6 +4111,10 @@ void sub_test_v(void) {
       str_in = cbuf;
       nc_gateway.fromString(str_in);
       update_needed = 1;
+    }
+
+    if(Serial.available()){ // dummy read
+      dummy_c = Serial.read();
     }
 
     Serial.print("[LAN] Enter DNS: ");
@@ -3940,6 +4185,30 @@ void sub_test_v(void) {
     Serial.printf("Input Data String: %s\r\n", cbuf);
     if(isalnum(cbuf[0])){
       update_serial_number(cbuf);
+      update_needed = 1;
+    }
+  } else if(c == '5') {  // MQTT settings
+    Serial.print("[MQTT] Enter MQTT Server: ");
+    char cbuf[128] = {0,};
+    int idx = 0;
+    while(1){
+      if(Serial.available()) {
+        cbuf[idx] = Serial.read();
+        Serial.print(cbuf[idx]);
+        if(cbuf[idx]=='\n') {
+          cbuf[idx] = 0;
+          Serial.println();
+          break;
+        } else if(cbuf[idx]=='\r'){
+          cbuf[idx] = 0;
+        }
+        idx++;
+      }
+    }
+    Serial.printf("Input Data String: %s\r\n", cbuf);
+    if(cbuf[0]){
+      memset(gv_mqtt, 0x00, sizeof(gv_mqtt));
+      strcpy(gv_mqtt, cbuf);
       update_needed = 1;
     }
   } else {
