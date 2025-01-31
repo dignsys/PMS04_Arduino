@@ -53,6 +53,37 @@
   ```
   //#define DISABLE_IR_FUNCTION
   ```
+
+## Docker Environment for MQTT
+
+- Runing Docker Environment
+
+  a) Ubuntu Test PC에 Docker Compose를 설치 ( https://docs.docker.com/compose/install/ )
+
+  b) docker_env를 Ubuntu Test PC로 복사하고 실행
+  ```
+  // Docker Compose (mosquitto + influxdb + Node-RED) 실행
+  cd ~/works/docker_env
+  sudo docker-compose up -d
+
+  // Docker Compose 실행 종료
+  sudo docker-compose down
+  ```
+  
+  c) PMS01 Setting
+  ```
+  WLAN Setting
+  - sub_test_v --> 1 (WLAN setting)
+  MQTT Server Setting
+  - sub_test_v --> 5 (MQTT Server setting)
+  ```
+
+- 참조
+
+  PMS01 Power Monitor Demo Guide
+
+  https://github.com/KyoungsueKim/didactic-spoon
+
 ## Sample Source Code for Hardware Basic Operation
 - 실행 방법
 

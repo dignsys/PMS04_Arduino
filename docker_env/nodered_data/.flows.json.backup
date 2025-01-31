@@ -1,0 +1,637 @@
+[
+    {
+        "id": "f6f2187d.f17ca8",
+        "type": "tab",
+        "label": "Dignsys Test Flow",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "57bf83c90e971a51",
+        "type": "mqtt-broker",
+        "name": "local server",
+        "broker": "192.168.1.149",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "16da8bf638444aa7",
+        "type": "influxdb",
+        "hostname": "myinfluxdb",
+        "port": 8086,
+        "protocol": "http",
+        "database": "power_monitor",
+        "name": "Power Database",
+        "usetls": false,
+        "tls": "",
+        "influxdbVersion": "1.x",
+        "url": "http://localhost:8086",
+        "timeout": 10,
+        "rejectUnauthorized": true
+    },
+    {
+        "id": "e72967f1deea9103",
+        "type": "mqtt-broker",
+        "name": "local",
+        "broker": "mymosquitto",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "301303380e6b5528",
+        "type": "ui_group",
+        "name": "Power Data",
+        "tab": "a62dbd33a7db8c9a",
+        "order": 1,
+        "disp": true,
+        "width": 6,
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "a62dbd33a7db8c9a",
+        "type": "ui_tab",
+        "name": "Home",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "41a207d8c08a1a67",
+        "type": "ui_base",
+        "theme": {
+            "name": "theme-light",
+            "lightTheme": {
+                "default": "#0094CE",
+                "baseColor": "#0094CE",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+                "edited": true,
+                "reset": false
+            },
+            "darkTheme": {
+                "default": "#097479",
+                "baseColor": "#097479",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+                "edited": false
+            },
+            "customTheme": {
+                "name": "Untitled Theme 1",
+                "default": "#4B7930",
+                "baseColor": "#4B7930",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
+            },
+            "themeState": {
+                "base-color": {
+                    "default": "#0094CE",
+                    "value": "#0094CE",
+                    "edited": false
+                },
+                "page-titlebar-backgroundColor": {
+                    "value": "#0094CE",
+                    "edited": false
+                },
+                "page-backgroundColor": {
+                    "value": "#fafafa",
+                    "edited": false
+                },
+                "page-sidebar-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-textColor": {
+                    "value": "#1bbfff",
+                    "edited": false
+                },
+                "group-borderColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "widget-textColor": {
+                    "value": "#111111",
+                    "edited": false
+                },
+                "widget-backgroundColor": {
+                    "value": "#0094ce",
+                    "edited": false
+                },
+                "widget-borderColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "base-font": {
+                    "value": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
+                }
+            },
+            "angularTheme": {
+                "primary": "indigo",
+                "accents": "blue",
+                "warn": "red",
+                "background": "grey",
+                "palette": "light"
+            }
+        },
+        "site": {
+            "name": "Node-RED Dashboard",
+            "hideToolbar": "false",
+            "allowSwipe": "false",
+            "lockMenu": "false",
+            "allowTempTheme": "true",
+            "dateFormat": "DD/MM/YYYY",
+            "sizes": {
+                "sx": 48,
+                "sy": 48,
+                "gx": 6,
+                "gy": 6,
+                "cx": 6,
+                "cy": 6,
+                "px": 0,
+                "py": 0
+            }
+        }
+    },
+    {
+        "id": "3cc11d24.ff01a2",
+        "type": "comment",
+        "z": "f6f2187d.f17ca8",
+        "name": "WARNING: please check you have started this container with a volume that is mounted to /data\\n otherwise any flow changes are lost when you redeploy or upgrade the container\\n (e.g. upgrade to a more recent node-red docker image).\\n  If you are using named volumes you can ignore this warning.\\n Double click or see info side panel to learn how to start Node-RED in Docker to save your work",
+        "info": "\nTo start docker with a bind mount volume (-v option), for example:\n\n```\ndocker run -it -p 1880:1880 -v /home/user/node_red_data:/data --name mynodered nodered/node-red\n```\n\nwhere `/home/user/node_red_data` is a directory on your host machine where you want to store your flows.\n\nIf you do not do this then you can experiment and redploy flows, but if you restart or upgrade the container the flows will be disconnected and lost. \n\nThey will still exist in a hidden data volume, which can be recovered using standard docker techniques, but that is much more complex than just starting with a named volume as described above.",
+        "x": 350,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "58c7e0e014167141",
+        "type": "debug",
+        "z": "f6f2187d.f17ca8",
+        "name": "debug 1",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 420,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "fbdcdc3948053dda",
+        "type": "mqtt in",
+        "z": "f6f2187d.f17ca8",
+        "name": "PMS01 Power Data",
+        "topic": "pms01/power",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "e72967f1deea9103",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 130,
+        "y": 260,
+        "wires": [
+            [
+                "58c7e0e014167141",
+                "6589c75a644c1439",
+                "ad6f34a536eff022",
+                "c894bf290a97bd71"
+            ]
+        ]
+    },
+    {
+        "id": "6589c75a644c1439",
+        "type": "change",
+        "z": "f6f2187d.f17ca8",
+        "name": "Prepare Fields",
+        "rules": [
+            {
+                "t": "set",
+                "p": "measurement",
+                "pt": "msg",
+                "to": "power_measurements",
+                "tot": "str"
+            },
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "{\t    \"timestamp\" : msg.payload.timestamp,\t    \"voltage\" : msg.payload.voltage,\t    \"current\" : msg.payload.current,\t    \"power\" : msg.payload.power,\t    \"energy\" : msg.payload.energy,\t    \"frequency\" : msg.payload.frequency,\t    \"powerFactor\" : msg.payload.powerFactor\t}",
+                "tot": "jsonata"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 220,
+        "y": 480,
+        "wires": [
+            [
+                "26b96f1076494e07",
+                "7c86dcd2c46d292e"
+            ]
+        ]
+    },
+    {
+        "id": "7c86dcd2c46d292e",
+        "type": "influxdb out",
+        "z": "f6f2187d.f17ca8",
+        "influxdb": "16da8bf638444aa7",
+        "name": "Write to influxdb",
+        "measurement": "power_measurements",
+        "precision": "",
+        "retentionPolicy": "",
+        "database": "power_monitor",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 440,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "26b96f1076494e07",
+        "type": "debug",
+        "z": "f6f2187d.f17ca8",
+        "name": "debug 2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 420,
+        "y": 540,
+        "wires": []
+    },
+    {
+        "id": "51435e6f4eec76a4",
+        "type": "influxdb in",
+        "z": "f6f2187d.f17ca8",
+        "influxdb": "16da8bf638444aa7",
+        "name": "recent 10 series",
+        "query": "SELECT * FROM power_measurements ORDER BY time DESC LIMIT 10",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 340,
+        "y": 600,
+        "wires": [
+            [
+                "3b4b1da4209fb52e"
+            ]
+        ]
+    },
+    {
+        "id": "3b4b1da4209fb52e",
+        "type": "debug",
+        "z": "f6f2187d.f17ca8",
+        "name": "debug 3",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 560,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "abdc9586a6a1a69d",
+        "type": "ui_chart",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "group": "301303380e6b5528",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "label": "Voltage",
+        "chartType": "line",
+        "legend": "false",
+        "xformat": "HH:mm:ss",
+        "interpolate": "linear",
+        "nodata": "",
+        "dot": false,
+        "ymin": "200",
+        "ymax": "240",
+        "removeOlder": 1,
+        "removeOlderPoints": "",
+        "removeOlderUnit": "3600",
+        "cutout": 0,
+        "useOneColor": false,
+        "useUTC": false,
+        "colors": [
+            "#1f77b4",
+            "#aec7e8",
+            "#ff7f0e",
+            "#2ca02c",
+            "#98df8a",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "outputs": 1,
+        "useDifferentColor": false,
+        "className": "",
+        "x": 620,
+        "y": 320,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "ad6f34a536eff022",
+        "type": "function",
+        "z": "f6f2187d.f17ca8",
+        "name": "voltage",
+        "func": "return { payload: Number(msg.payload.voltage)};",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 320,
+        "wires": [
+            [
+                "abdc9586a6a1a69d"
+            ]
+        ]
+    },
+    {
+        "id": "c894bf290a97bd71",
+        "type": "function",
+        "z": "f6f2187d.f17ca8",
+        "name": "frequency",
+        "func": "return { payload: Number(msg.payload.frequency)};",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 360,
+        "wires": [
+            [
+                "c9b8227f6d46f2fd",
+                "e7c691a3bfb55b0f"
+            ]
+        ]
+    },
+    {
+        "id": "c9b8227f6d46f2fd",
+        "type": "ui_gauge",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "group": "301303380e6b5528",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Frequency Gauge",
+        "label": "units",
+        "format": "{{value}}",
+        "min": "0",
+        "max": "100",
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 650,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "e7c691a3bfb55b0f",
+        "type": "ui_chart",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "group": "301303380e6b5528",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "label": "Frequency Chart",
+        "chartType": "line",
+        "legend": "false",
+        "xformat": "HH:mm:ss",
+        "interpolate": "linear",
+        "nodata": "",
+        "dot": false,
+        "ymin": "59",
+        "ymax": "61",
+        "removeOlder": 1,
+        "removeOlderPoints": "",
+        "removeOlderUnit": "3600",
+        "cutout": 0,
+        "useOneColor": false,
+        "useUTC": false,
+        "colors": [
+            "#1f77b4",
+            "#aec7e8",
+            "#ff7f0e",
+            "#2ca02c",
+            "#98df8a",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "outputs": 1,
+        "useDifferentColor": false,
+        "className": "",
+        "x": 650,
+        "y": 360,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "65f29161c7ab66a8",
+        "type": "inject",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "60",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 130,
+        "y": 600,
+        "wires": [
+            [
+                "51435e6f4eec76a4",
+                "a57132a354708cf4"
+            ]
+        ]
+    },
+    {
+        "id": "a57132a354708cf4",
+        "type": "influxdb in",
+        "z": "f6f2187d.f17ca8",
+        "influxdb": "16da8bf638444aa7",
+        "name": "voltage mean",
+        "query": "SELECT mean(voltage) as voltage FROM power_measurements",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 340,
+        "y": 640,
+        "wires": [
+            [
+                "dd05e50a96a503aa",
+                "ea0f5e02d8c1a3b8"
+            ]
+        ]
+    },
+    {
+        "id": "dd05e50a96a503aa",
+        "type": "debug",
+        "z": "f6f2187d.f17ca8",
+        "name": "debug 4",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 560,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "ea0f5e02d8c1a3b8",
+        "type": "function",
+        "z": "f6f2187d.f17ca8",
+        "name": "mean voltage",
+        "func": "let value = msg.payload.map(row => {\n    return row.voltage;\n})\nreturn { payload: Number(value) };",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 540,
+        "y": 680,
+        "wires": [
+            [
+                "885b367fe2a61ea5",
+                "62ca8af98bde8635"
+            ]
+        ]
+    },
+    {
+        "id": "885b367fe2a61ea5",
+        "type": "ui_text",
+        "z": "f6f2187d.f17ca8",
+        "group": "301303380e6b5528",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Mean Voltage",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": 16,
+        "color": "#000000",
+        "x": 740,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "62ca8af98bde8635",
+        "type": "debug",
+        "z": "f6f2187d.f17ca8",
+        "name": "debug 5",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 720,
+        "y": 720,
+        "wires": []
+    }
+]
