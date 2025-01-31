@@ -25,7 +25,7 @@
 #include <IRsend.h>
 #endif
 
-#define VERSION_PMS_FW  "20250124"
+#define VERSION_PMS_FW  "20250131"
 
 #define SYS_PMS01     1
 #define SYS_PMS04     4
@@ -214,6 +214,7 @@ void mqtt_callback(char* topic, byte* message, unsigned int length);
 StaticJsonDocument<200> doc;
 
 uint8_t wifi_connected = 0;
+uint8_t mqtt_access = 1;
 
 float gvf_voltage = 0.;
 float gvf_current = 0.;
@@ -339,6 +340,7 @@ void prt_cmd_info_l(void){
   Serial.println("3: set (time value should be set in the source code)");
   Serial.println("4: Read RTC time value");
   Serial.println("5: Set system time through NTP");
+  Serial.println("6: Set RTC time through system time");
   Serial.println();
 }
 
@@ -648,7 +650,7 @@ void loop() {
 
     Serial.println();
 
-    if(wifi_connected){
+    if(wifi_connected && mqtt_access){
       if (!mqtt_client.connected()) {
         connectToMQTT();
       }
@@ -2129,7 +2131,10 @@ void connectToMQTT(void) {
     } else {
       Serial.print("failed, rc=");
       Serial.print(mqtt_client.state());
-      if(++rcnt > 3) break;
+      if(++rcnt > 3){
+        mqtt_access = 0;
+        break;
+      }
       Serial.println(" try again in 5 seconds");
       delay(5000);
     }
@@ -3058,7 +3063,7 @@ void sub_test_l(void) {
     sw.endTransmission();
   } else if (c == '4') {  // Read Time
     readTime();
-  } else if (c == '5') {  // Set Time through NTP
+  } else if (c == '5') {  // Set System Time through NTP
     if(wifi_connected) {
       // Initialize time
       configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
@@ -3069,6 +3074,64 @@ void sub_test_l(void) {
       } else {
         Serial.println("Failed to obtain time");
       }
+    }
+  } else if (c == '6') {  // Set RTC through System Time
+    uint8_t udata = 0;
+    struct tm timeinfo;
+    if (getLocalTime(&timeinfo)) {
+      Serial.printf("Current time: %s", asctime(&timeinfo));
+      Serial.printf("Year: %d\n", timeinfo.tm_year%100);
+      Serial.printf("Month: %d\n", timeinfo.tm_mon);
+      Serial.printf("Date: %d\n", timeinfo.tm_wday);
+      Serial.printf("Day: %d\n", timeinfo.tm_mday);
+      Serial.printf("Hours: %d\n", timeinfo.tm_hour);
+      Serial.printf("Minutes: %d\n", timeinfo.tm_min);
+      Serial.printf("Seconds: %d\n", timeinfo.tm_sec);
+
+      udata = timeinfo.tm_sec/10;
+      data[0] = udata*0x10;   // 10 Seconds
+      udata = timeinfo.tm_sec%10;
+      data[0] += udata;       // Seconds
+
+      udata = timeinfo.tm_min/10;
+      data[1] = udata*0x10;   // 10 Minutes
+      udata = timeinfo.tm_min%10;
+      data[1] += udata;       // Minutes
+
+      //data[2] = 0x40;   // 12-Hour Mode
+      data[2] = 0x00;     // 24-Hour Mode
+
+      udata = timeinfo.tm_hour/10;
+      data[2] += udata*0x10;  // 10 Hours
+      udata = timeinfo.tm_hour%10;
+      data[2] += udata;       // Hours
+
+      udata = timeinfo.tm_wday;
+      if(udata == 0) udata = 7;
+      data[3] = udata;        // Day (1~7), Monday first
+
+      udata = timeinfo.tm_mday/10;
+      data[4] = udata*0x10;   // 10 Date
+      udata = timeinfo.tm_mday%10;
+      data[4] += udata;       // Date
+
+      udata = (timeinfo.tm_mon+1)/10;
+      data[5] = udata*0x10;   // 10 Month
+      udata = (timeinfo.tm_mon+1)%10;
+      data[5] += udata;       // Month
+
+      udata = (timeinfo.tm_year%100)/10;
+      data[6] = udata*0x10;   // 10 Year
+      udata = timeinfo.tm_year%10;
+      data[6] += udata;       // Year
+      sw.beginTransmission(I2C_ADDR_RTC);
+      sw.write(uint8_t(0));
+      for (int i = 0; i < 8; ++i) {
+        sw.write(data[i]);
+      }
+      sw.endTransmission();
+    } else {
+      Serial.println("Failed to obtain time");
     }
   } else {
     Serial.println("Invalid Test Number");
@@ -3496,7 +3559,7 @@ void sub_test_n(void) {
     }
     mqtt_client.setCallback(mqtt_callback);
 
-    if(wifi_connected) connectToMQTT();
+    if(wifi_connected && mqtt_access) connectToMQTT();
   } else {
     Serial.println("Invalid Test Number");
     return;
